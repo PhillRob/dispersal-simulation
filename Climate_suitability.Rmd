@@ -17,11 +17,11 @@ require(tidyverse)
 
 # Introduction
 
-The goal of the analysis is to simulate dispersal of cakile edentula following introductions at the ports of "Sydney", "Melbourne", "Brisbane" and "Perth".
+The goal of the analysis is to simulate dispersal of _Cakile edentula_ following introductions at the ports of "Sydney", "Melbourne", "Brisbane" and "Perth".
 
 Steps taken:
 
-1. Using the BCCVL platform, and "occurance data" for cakile edentula in its native habitat (in USA) and the climate data "CRUclim (global), current climate (1976-2005), 30 arcmin (~50 km)" as input, predicted a species distribution map for the suitability of cakile edentula.  The output is a CSV file with the suitability probabilities (0 - 1) for different points.
+1. Using the [BCCVL](https://bccvl.org.au/) platform, and "occurrence data" for _Cakile edentula_ in its native habitat (in USA) and the climate data "CRUclim (global), current climate (1976-2005), 30 arcmin (~50 km)" as input, predicted a species distribution map for the suitability of _Cakile edentula_.  The output is a CSV file with the suitability probabilities (0 - 1) for different points.
 
 2. Transformed the data on suitability from BCCVL into a landscape map file *land.txt*.
 
