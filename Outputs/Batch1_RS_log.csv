@@ -1,6 +1,6 @@
 Event,Number,Reps,Years,Time
-RNG SEED,,,,2599374578
+RNG SEED,,,,13976
 Landscape,0,,,0
-Simulation,1,2,1000,30
+Simulation,1,10,1000,188
 
-Batch,,,,30
+Batch,,,,188

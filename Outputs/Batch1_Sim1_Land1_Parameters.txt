@@ -2,8 +2,8 @@ RangeShifter 2.0
 ================    =====================
 
 BATCH MODE 	yes
-SEED 	2599374578
-REPLICATES 	2
+SEED 	13976
+REPLICATES 	10
 YEARS 	1000
 REPRODUCTIVE SEASONS / YEAR	1
 CELL-BASED MODEL
@@ -13,9 +13,9 @@ LANDSCAPE:	imported map
 TYPE: 	habitat quality
 FILE NAME: climate_suitabilitya.asc
 No. HABITATS:	1
-RESOLUTION (m): 	2
-DIMENSIONS:  X 180  Y 90
-AVAILABLE:   min.X 0 min.Y 0  max.X 179 max.Y 89
+RESOLUTION (m): 	1
+DIMENSIONS:  X 258  Y 100
+AVAILABLE:   min.X 0 min.Y 0  max.X 257 max.Y 99
 
 SPECIES DISTRIBUTION LOADED: 	yes
 RESOLUTION (m)	2
@@ -29,18 +29,18 @@ SPECIES' PARAMETERS.
 REPRODUCTION:
 TYPE: Asexual / Only female model
 STAGE STRUCTURE:	no
-Rmax	1000
-bc	0.1
+Rmax	5
+bc	1e-08
 
 CARRYING CAPACITIES:
-Habitat 0: K 100
+Habitat 0: K 10000
 
 DISPERSAL - EMIGRATION:	density-independent
 USE FULL KERNEL TO DETERMINE EMIGRATION: no
 SEX-DEPENDENT:   no
 STAGE-DEPENDENT: no
 INDIVIDUAL VARIABILITY: no
-EMIGRATION PROB.:	0.9
+EMIGRATION PROB.:	0.5
 
 DISPERSAL - TRANSFER: 	dispersal kernel
 TYPE: 	double negative exponential
@@ -56,22 +56,23 @@ MORTALITY PROBABILITY: 0
 DISPERSAL - SETTLEMENT:
 SEX-DEPENDENT:   no
 STAGE-DEPENDENT: no
-IF THE ARRIVAL CELL/PATCH IS UNSUITABLE: die
+IF THE ARRIVAL CELL/PATCH IS UNSUITABLE:  randomly choose a suitable neighb. cell/patch or die
 MATING REQUIREMENTS: no
 
 GENETICS:
 No. of variable traits:  0
 
 INITIALISATION CONDITIONS:
-Free initialisation: 	all suitable cells/patches
-INITIAL NO. OF INDIVIDUALS: 	1000 individuals per cell
+From species distribution: 	
+some random presence cells/patches
+INITIAL NO. OF INDIVIDUALS: 	100 individuals per cell
 GEOGRAPHICAL CONSTRAINTS (cell numbers): 
-min X: 0 max X: 179
-min Y: 0 max Y: 89
+min X: 0 max X: 257
+min Y: 0 max Y: 99
 
 OUTPUTS:
-Range - every 1 year
-Occupancy - every 1 year
-Populations - every 1 year
+Range - every 5 years
+Occupancy - every 5 years
+Populations - every 5 years
 SAVE MAPS: no
 SAVE TRAITS MAPS: no
