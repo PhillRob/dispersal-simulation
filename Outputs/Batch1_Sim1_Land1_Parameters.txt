@@ -2,8 +2,8 @@ RangeShifter 2.0
 ================    =====================
 
 BATCH MODE 	yes
-SEED 	13976
-REPLICATES 	10
+SEED 	2213096088
+REPLICATES 	100
 YEARS 	1000
 REPRODUCTIVE SEASONS / YEAR	1
 CELL-BASED MODEL
@@ -11,14 +11,14 @@ BOUNDARIES 	reflective
 
 LANDSCAPE:	imported map
 TYPE: 	habitat quality
-FILE NAME: climate_suitabilitya.asc
+FILE NAME: climate_suitability.asc
 No. HABITATS:	1
 RESOLUTION (m): 	1
-DIMENSIONS:  X 258  Y 100
-AVAILABLE:   min.X 0 min.Y 0  max.X 257 max.Y 99
+DIMENSIONS:  X 360  Y 150
+AVAILABLE:   min.X 0 min.Y 0  max.X 359 max.Y 149
 
 SPECIES DISTRIBUTION LOADED: 	yes
-RESOLUTION (m)	2
+RESOLUTION (m)	1
 FILE NAME: news_locations.asc
 
 ENVIRONMENTAL GRADIENT:	 no
@@ -29,18 +29,18 @@ SPECIES' PARAMETERS.
 REPRODUCTION:
 TYPE: Asexual / Only female model
 STAGE STRUCTURE:	no
-Rmax	5
-bc	1e-08
+Rmax	6
+bc	1e-05
 
 CARRYING CAPACITIES:
-Habitat 0: K 10000
+Habitat 0: K 1000
 
 DISPERSAL - EMIGRATION:	density-independent
 USE FULL KERNEL TO DETERMINE EMIGRATION: no
 SEX-DEPENDENT:   no
 STAGE-DEPENDENT: no
 INDIVIDUAL VARIABILITY: no
-EMIGRATION PROB.:	0.5
+EMIGRATION PROB.:	0.05
 
 DISPERSAL - TRANSFER: 	dispersal kernel
 TYPE: 	double negative exponential
@@ -67,12 +67,12 @@ From species distribution:
 some random presence cells/patches
 INITIAL NO. OF INDIVIDUALS: 	100 individuals per cell
 GEOGRAPHICAL CONSTRAINTS (cell numbers): 
-min X: 0 max X: 257
-min Y: 0 max Y: 99
+min X: 0 max X: 359
+min Y: 0 max Y: 149
 
 OUTPUTS:
-Range - every 5 years
-Occupancy - every 5 years
-Populations - every 5 years
+Range - every 1 year
+Occupancy - every 1 year
+Populations - every 1 year
 SAVE MAPS: no
 SAVE TRAITS MAPS: no
