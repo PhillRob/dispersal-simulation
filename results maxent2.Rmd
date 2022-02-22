@@ -1,0 +1,186 @@
+---
+title: "Dispersal Simulation using RangeShiftR"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+library(RangeShiftR)
+require(sp)
+require(rgdal)
+require(sfheaders)
+require(raster)
+require(SDMSelect)
+require(tidyverse)
+```
+
+
+# Introduction
+
+The goal is to simulate dispersal of _Cakile edentula_ following introductions at the ports of Sydney, Melbourne, Brisbane and Perth.
+
+Steps taken:
+
+1. Using the 
+- [BCCVL](https://bccvl.org.au/) platform,  
+- global species occurrence data for _Cakile edentula_ in its "native" and "home/invaded" ranges and 
+- global climate data WorldClim for 1950-2000 at ~5 km resolution 
+
+we predict the potential species distribution. The output is a CSV file with the suitability probabilities (0 - 1) for different points.
+
+2. Transformed the data on suitability from BCCVL into a landscape map file *land.txt*.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+#### suitability map from tif
+
+l = raster("Inputs/proj_current_cakile.edentula_maxent_unconstrained.tif")
+l2 = raster::resample(l, raster(ext=extent(extent(l)), resolution=1,crs=projection(l)))
+
+raster::writeRaster(l2, format="ascii", filename = "Inputs/climate_suitability", NAflag = -9, overwrite = T, bylayer = T, datatype = "FLT4S")
+
+
+lp = gplot_data(raster("Inputs/climate_suitability.asc")) %>% filter(!is.na(value))
+```
+
+
+3. Identified the map locations for the ports of "Sydney", "Melbourne", "Brisbane" and "Perth" and assigned 100 individuals of _Cakile edentula_ introductions in each 1sqkm grid. Transformed this data into a species distribution map file *introduction.txt*
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+introduction = read.csv("Inputs/aus_ports3.csv")[, 1:3]
+introduction$Individuals = as.numeric(introduction$Individuals)
+
+a3 = introduction %>% filter(!is.na(Individuals)) %>% mutate("locations" =  c("Syd", "Mel", "Mel", "Bris", "Perth")) %>% na.omit()
+
+coordinates(introduction) = ~ lon + lat
+proj4string(introduction)=proj4string(l) # set it to lat-long
+introduction = spTransform(introduction,proj4string(l))
+
+e <- extent(l)
+r <- raster(e, ncols = 720, nrows = 360)
+
+# you need to provide a function 'fun' for when there are multiple points per cell
+introduction2 <- rasterize(introduction, r, fun = mean)
+
+introduction3 = raster::resample(introduction2[[2]], raster(ext=extent(extent(introduction2)), resolution=1,crs=projection(introduction)))
+
+
+raster::writeRaster(introduction3, format="ascii", filename = "Inputs/news_locations.asc", NAflag = -9, overwrite = T, datatype = "INT2U")
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+ggplot( ) + 
+  geom_tile(data = lp , aes(x = x, y = y, fill = value)) + 
+  scale_fill_gradient("suitability", low = "white", high = "black") +
+  theme_grey() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + 
+  geom_point(data = a3, aes(x = lon, y = lat, color = locations))
+```
+
+The chart above displays the climate suitability for _Cakile edentula_ in the selected region that overlaps between the native area in the USA and Australia. From the map, we observe that suitability is only relatively high in the native region and very low everywhere else. The introduction points for this simulation are also shown and we note that they are all regions with very low suitability.
+
+
+4. Define the *landscape parameter* in RangeShiftR for simulation. We define the resolution at $1km$. We set *HabPercent = TRUE* since the data in our suitability map is a probability value between 0 and 1. We set the *K_or_DensDep = 1000* to infer that a location with a probability of 1 would have a carrying capacity of 100. The carrying capacities for all locations are calculated based on the probability value and the 100 threshold. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
+                          Resolution = 1, 
+                          HabPercent = TRUE, 
+                          K_or_DensDep = 1000, 
+                          SpDistFile = "news_locations.asc", 
+                          SpDistResolution = 1)
+
+```
+
+5. We define the Species parameters which include:
+
+- *demography*: I have made the assumption that the population dynamics are described by a female-only model with non-overlapping generations and defined the *maximum growth rate as 6*
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+demos <- Demography(Rmax = 6, bc = 0.00001, ReproductionType = 0)
+demos
+```
+
+- *dispersal*: This contains information on *Emigration* probability, *Transport* modeled with a dispersal kernel and *Settlement* whose default options assume that an individual will die if it arrives in an unsuitable cell and settle if it’s suitable. 
+
+We make the assumption that the *Emigration probability = 0.05*
+
+We define *short range* and *long range transfer* at $20,000m$ with $probability = 0.5$ and $100,000m$ with $probability = 0.1$ respectively. This suggests that we have a 3rd possible dispersal distance equal to $0$ which has a probability of $1 - (0.5 + 0.1) = 0.4$. However, RangeShiftR  provides for either a single or double kernel to define distance. To fit this, I considered the odds between the short dispersal distance (20km) and the long distance (100km) and used this to recalculate their probabilities assuming the 3rd option of $0Km$ is not present.
+
+$$P_{20km} = P_{20km}/{(P_{20km} + P_{100Km})} = 0.83$$
+
+$$P_{100km} = P_{100km}/{(P_{20km} + P_{100Km})}=0.17$$
+
+We define settlement parameters to limit self extinction i.e such that if a species emigrates to an unsuitable cell, it can move to one of the eight neighbouring cells in the case that at least one of them is suitable. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+dist = matrix(c(20000, 100000, 0.83 ), ncol = 3, byrow = T)
+
+disps <-  Dispersal(Emigration = Emigration(EmigProb = 0.05), Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + Settlement(MaxSteps = 1, Settle = 2)
+disps
+```
+
+6. Initialize the parameters for simulation
+
+Introduce 100 individuals in each 1*1 km grid, in 15 cells around the 4 port locations
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+inits <- Initialise(InitType = 1, # = initialisation from a loaded species distribution map
+                   SpType = 1,# = all suitable cells within all distribution presence cells
+                   NrCells = 10,
+                   InitDens = 2,
+                   IndsHaCell = 100) # = at carrying capacity
+
+inits
+```
+
+7. Simulation parameters
+
+We will run $1\ experiments$ with $10\ replicates$ simulating the spread of _Cakile edentula_ over $1000\ years$ and record the *population*, *occurrence* and *range* every $5\ years$
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+sims <- Simulation(Simulation = 1,
+                  Years = 1000,
+                  Replicates = 100,
+                  OutIntRange = 1,
+                  OutIntPop = 1,
+                  OutIntOcc = 1)
+sims
+```
+
+8. Combine all the predefined parameters into a master object and run the simulation. We will run two separate simulations, one for the short range dispersal and the other for the long range dispersal.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+simulate <- RSsim() + landscapes + demos + disps + sims + inits
+validateRSparams(simulate) ## check parameter validity
+```
+
+9. Run simulations
+
+```{r, echo=TRUE, message=FALSE}
+RunRS(RSparams = simulate, dirpath = paste0(getwd(), "/"))
+```
+
+
+# Summary of the output
+
+The table below shows the summary for the outputs for the 100 different replicates simulated for 1000 years. The column *Rep* represents the replicate indicating a hypothetical species. *year* indicates the year the species dies out (if year < 1000) or 1000 if the species survived the entire simulation period. *max_number* is the maximum number of individuals that were recorded in that replicate. *final_number* is the number of individuals at the end of the simulation. *max_range* is the maximum number of occupied cells starting for each replicate. *start_range* is the original number of occupied cells at year 0
+
+```{r, echo=TRUE, message=FALSE}
+m = read.csv("Outputs/Batch1_Sim1_Land1_Range.txt", sep = "\t")
+n = m %>% group_by(Rep) %>% summarize(year = max(Year), max_number = max(NInds), final_number = tail(NInds, 1), start_range = head(NOccupCells, 1), max_range = max(NOccupCells)) %>% as.data.frame() 
+
+survived = nrow(n[n$year == 1000,])
+minimum_survival = min(n$year)
+```
+
+We note from the table (below) that; 
+
+- out of the 100 replicates, `r survived` survived after 1000 years
+- the species survived for between `r minimum_survival` and `r max(n$year)` years
+
+```{r, echo=TRUE, message=FALSE}
+n[order(-n$year),] %>% knitr::kable()
+```
