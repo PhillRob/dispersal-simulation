@@ -3,3 +3,6 @@
 .RData
 .Ruserdata
 .zip
+.DS_Store
+.Rproj
+distribution-simulation.Rproj
