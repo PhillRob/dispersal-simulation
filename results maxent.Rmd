@@ -22,12 +22,12 @@ The goal is to simulate dispersal of _Cakile edentula_ following introductions a
 
 Steps taken:
 
-1. Using the 
+1. We predict the potential species distribution using:
 - [BCCVL](https://bccvl.org.au/) platform,  
 - global species occurrence data for _Cakile edentula_ in its "native" and "home/invaded" ranges and 
 - global climate data WorldClim for 1950-2000 at ~5 km resolution 
 
-we predict the potential species distribution. The output is a CSV file with the suitability probabilities (0 - 1) for different points.
+ The output is a CSV file with the suitability probabilities (0 - 1) for different points.
 
 2. Transformed the data on suitability from BCCVL into a landscape map file *land.txt*.
 
@@ -79,16 +79,16 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
   geom_point(data = a3, aes(x = lon, y = lat, color = locations))
 ```
 
-The chart above displays the climate suitability for _Cakile edentula_ in the selected region that overlaps between the native area in the USA and Australia. From the map, we observe that suitability is only relatively high in the native region and very low everywhere else. The introduction points for this simulation are also shown and we note that they are all regions with very low suitability.
+The chart above displays the climate suitability for _Cakile edentula_ in the selected region that overlaps between the native area in the USA and Australia. From the map, we observe that suitability is relatively high in the native region and low elsewhere. The introduction points for this simulation are located in regions with low suitability.
 
 
-4. Define the *landscape parameter* in RangeShiftR for simulation. We define the resolution at $1km$. We set *HabPercent = TRUE* since the data in our suitability map is a probability value between 0 and 1. We set the *K_or_DensDep = 1000* to infer that a location with a probability of 1 would have a carrying capacity of 100. The carrying capacities for all locations are calculated based on the probability value and the 100 threshold. 
+4. Define the *landscape parameter* in RangeShiftR for simulation. I define the resolution at $1km$ and set *HabPercent = TRUE* since the data in our suitability map is a probability value between 0 and 1. We set the *K_or_DensDep = 10000* to infer that a location with a probability of 1 would have a carrying capacity of 100. The carrying capacities for all locations are calculated based on the probability value and the 100 threshold. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
                           Resolution = 1, 
                           HabPercent = TRUE, 
-                          K_or_DensDep = 1000, 
+                          K_or_DensDep = 10000, 
                           SpDistFile = "news_locations.asc", 
                           SpDistResolution = 1)
 
