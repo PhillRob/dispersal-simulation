@@ -82,7 +82,7 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
 The chart above displays the climate suitability for _Cakile edentula_ in the selected region that overlaps between the native area in the USA and Australia. From the map, we observe that suitability is relatively high in the native region and low elsewhere. The introduction points for this simulation are located in regions with low suitability.
 
 
-4. Define the *landscape parameter* in RangeShiftR for simulation. I define the resolution at $1km$ and set *HabPercent = TRUE* since the data in our suitability map is a probability value between 0 and 1. We set the *K_or_DensDep = 100* to infer that a location with a probability of 1 would have a carrying capacity of 100. The carrying capacities for all locations are calculated based on the probability value and the 100 threshold. 
+4. Define the *landscape parameter* in RangeShiftR for simulation. I define the resolution at $1km$ and set *HabPercent = TRUE* since the data in our suitability map is a probability value between 0 and 1. We set the *K_or_DensDep = 10000* to infer that a location with a probability of 1 would have a carrying capacity of 100. The carrying capacities for all locations are calculated based on the probability value and the 100 threshold. 
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
