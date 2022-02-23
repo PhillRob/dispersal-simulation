@@ -160,6 +160,7 @@ validateRSparams(simulate) ## check parameter validity
 9. Run simulations
 
 ```{r, echo=TRUE, message=FALSE}
+set.seed(35678)
 RunRS(RSparams = simulate, dirpath = paste0(getwd(), "/"))
 ```
 
