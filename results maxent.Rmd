@@ -153,14 +153,14 @@ sims
 8. Combine all the predefined parameters into a master object and run the simulation. We will run two separate simulations, one for the short range dispersal and the other for the long range dispersal.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-simulate <- RSsim() + landscapes + demos + disps + sims + inits
+simulate <- RSsim(seed = 10000) + landscapes + demos + disps + sims + inits
 validateRSparams(simulate) ## check parameter validity
 ```
 
 9. Run simulations
 
 ```{r, echo=TRUE, message=FALSE}
-set.seed(35678)
+set.seed(356785)
 RunRS(RSparams = simulate, dirpath = paste0(getwd(), "/"))
 ```
 
