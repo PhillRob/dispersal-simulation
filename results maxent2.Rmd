@@ -1,0 +1,238 @@
+---
+title: "Dispersal Simulation using RangeShiftR"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+library(RangeShiftR)
+require(sp)
+require(rgdal)
+require(sfheaders)
+require(raster)
+require(SDMSelect)
+require(tidyverse)
+require(RColorBrewer)
+require(rasterVis)
+require(latticeExtra)
+require(viridis)
+require(grid)
+require(gridExtra)
+```
+
+
+# Introduction
+
+The goal is to simulate dispersal of _Cakile edentula_ following introductions at the ports of Sydney, Melbourne, Brisbane and Perth.
+
+Steps taken:
+
+1. We predict the potential species distribution using:
+- [BCCVL](https://bccvl.org.au/) platform,  
+- global species occurrence data for _Cakile edentula_ in its "native" and "home/invaded" ranges and 
+- global climate data WorldClim for 1950-2000 at ~5 km resolution 
+
+ The output is a CSV file with the suitability probabilities (0 - 1) for different points.
+
+2. Transformed the data on suitability from BCCVL into a landscape map file *land.txt*.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+#### suitability map from tif
+lp = gplot_data(raster("Inputs/climate_suitability.asc")) %>% filter(!is.na(value))
+```
+
+
+3. Identified the map locations for the ports of "Sydney", "Melbourne", "Brisbane" and "Perth" and assigned 100 individuals of _Cakile edentula_ introductions in each 1sqkm grid. Transformed this data into a species distribution map file *introduction.txt*
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+ggplot( ) + 
+  geom_tile(data = lp , aes(x = x, y = y, fill = value)) + 
+  scale_fill_gradient("suitability", low = "white", high = "black") +
+  theme_grey() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
+```
+
+The chart above displays the climate suitability for _Cakile edentula_ in the selected region that overlaps between the native area in the USA and Australia. From the map, we observe that suitability is relatively high in the native region and low elsewhere. The introduction points for this simulation are located in regions with low suitability.
+
+
+4. Define the *landscape parameter* in RangeShiftR for simulation. I define the resolution at $1km$ and set *HabPercent = TRUE* since the data in our suitability map is a probability value between 0 and 1. We set the *K_or_DensDep = 10000* to infer that a location with a probability of 1 would have a carrying capacity of 100. The carrying capacities for all locations are calculated based on the probability value and the 100 threshold. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
+                          Resolution = 1, 
+                          HabPercent = TRUE, 
+                          K_or_DensDep = 10000)
+```
+
+5. We define the Species parameters which include:
+
+- *demography*: I have made the assumption that the population dynamics are described by a female-only model with non-overlapping generations and defined the *maximum growth rate as 6*
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+demos <- Demography(Rmax = 6, bc = 0.00001, ReproductionType = 0)
+demos
+```
+
+- *dispersal*: This contains information on *Emigration* probability, *Transport* modeled with a dispersal kernel and *Settlement* whose default options assume that an individual will die if it arrives in an unsuitable cell and settle if it’s suitable. 
+
+We make the assumption that the *Emigration probability = 0.05*
+
+We define *short range* and *long range transfer* at $20,000m$ with $probability = 0.5$ and $100,000m$ with $probability = 0.1$ respectively. This suggests that we have a 3rd possible dispersal distance equal to $0$ which has a probability of $1 - (0.5 + 0.1) = 0.4$. However, RangeShiftR  provides for either a single or double kernel to define distance. To fit this, I considered the odds between the short dispersal distance (20km) and the long distance (100km) and used this to recalculate their probabilities assuming the 3rd option of $0Km$ is not present.
+
+$$P_{20km} = P_{20km}/{(P_{20km} + P_{100Km})} = 0.83$$
+
+$$P_{100km} = P_{100km}/{(P_{20km} + P_{100Km})}=0.17$$
+
+We define settlement parameters to limit self extinction i.e such that if a species emigrates to an unsuitable cell, it can move to one of the eight neighbouring cells in the case that at least one of them is suitable. 
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+dist = matrix(c(20000, 100000, 0.83 ), ncol = 3, byrow = T)
+disps <-  Dispersal(Emigration = Emigration(EmigProb = 0.05), Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + Settlement(MaxSteps = 1, Settle = 2)
+disps
+```
+
+6. Initialize the parameters for simulation
+
+Introduce 100 individuals in each 1*1 km grid, in 15 cells around the 4 port locations
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+inits <- Initialise(InitType = 2, # = initialisation from a loaded species distribution map
+                   InitIndsFile = "aus_ports4.tsv", # = all suitable cells within all distribution presence cells
+                   InitDens = 1) # = at half carrying capacity
+inits
+```
+
+7. Simulation parameters
+
+We will run $1\ experiments$ with $10\ replicates$ simulating the spread of _Cakile edentula_ over $1000\ years$ and record the *population*, *occurrence* and *range* every $year$
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+sims <- Simulation(Simulation = 1,
+                  Years = 1000,
+                  Replicates = 100,
+                  OutIntRange = 1,
+                  OutIntPop = 1,
+                  OutIntOcc = 1)
+sims
+```
+
+8. Combine all the predefined parameters into a master object and run the simulation. We will run two separate simulations, one for the short range dispersal and the other for the long range dispersal.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+simulate <- RSsim(seed = 10000) + landscapes + demos + disps + sims + inits
+validateRSparams(simulate) ## check parameter validity
+```
+
+9. Run simulations
+
+```{r, echo=TRUE, message=FALSE}
+set.seed(356785)
+RunRS(RSparams = simulate, dirpath = paste0(getwd(), "/"))
+```
+
+
+# Summary of the output
+
+The table below shows the summary for the outputs for the 100 different replicates simulated for 1000 years. The column *Rep* represents the replicate indicating a hypothetical species. *year* indicates the year the species dies out (if year < 1000) or 1000 if the species survived the entire simulation period. *max_number* is the maximum number of individuals that were recorded in that replicate. *final_number* is the number of individuals at the end of the simulation. *max_range* is the maximum number of occupied cells starting for each replicate. *start_range* is the original number of occupied cells at year 0
+
+```{r, echo=TRUE, message=FALSE}
+m = read.csv("Outputs/Batch1_Sim1_Land1_Range.txt", sep = "\t")
+n = m %>% group_by(Rep) %>% summarize(year = max(Year), max_number = max(NInds), final_number = tail(NInds, 1), start_range = head(NOccupCells, 1), max_range = max(NOccupCells)) %>% as.data.frame() 
+survived = nrow(n[n$year == 1000,])
+minimum_survival = min(n$year)
+```
+
+We note from the table (below) that; 
+
+- out of the 100 replicates, `r survived` survived after 1000 years
+- the species survived for between `r minimum_survival` and `r max(n$year)` years
+
+```{r, echo=TRUE, message=FALSE}
+k = n[order(-n$year),] 
+k %>% knitr::kable()
+k = k %>% filter(year == 1000)
+k = k[order(-k$max_number),] 
+```
+
+
+
+# Sample output: Range Output File
+
+```{r, echo=FALSE, message=FALSE}
+dirpath = paste0(getwd(), "/")
+range_df <- readRange(simulate, dirpath)
+```
+
+## Abundance
+
+```{r, echo=FALSE, message=FALSE}
+# plot trajectory for mean of all the  runs:
+plotAbundance(range_df, sd = T, replicates = F, main = "Simulation")
+```
+
+# Sample output: Population Output File
+
+local abundances for all populated cells in the recorded years for all replicates
+
+
+```{r, echo=FALSE, message=FALSE}
+# read population output file into a data frame
+pop_df <- readPop(simulate, dirpath)
+pop_df1 = pop_df[pop_df$Rep == head(k$Rep, 1),]
+# Not all years have the same number of cells, since only cells that had ever established a population are recorded. 
+# For later stacking, we need a common extent. This is a quick & dirty solution:
+ext <- c(min(pop_df$x)-500,max(pop_df$x)+500,min(pop_df$y)-500,max(pop_df$y)+500)
+
+
+# Make stack of different raster layers for each year and for only one repetition (Rep==18):
+
+pop_wide_rep18 <- reshape(subset(pop_df,Rep== head(k$Rep, 1))[,c('Year','x','y','NInd')], timevar='Year', v.names=c('NInd'), idvar=c('x','y'), direction='wide')
+r_years_rep18 <- rasterFromXYZ(pop_wide_rep18)
+
+# Overlay with UK mask
+r_years_rep18 <- extend(r_years_rep18, introduction3)
+values(r_years_rep18)[is.na(values(r_years_rep18))] <- 0
+r_years_rep18 <- crop(r_years_rep18, introduction3)
+plot(introduction3)
+```
+
+## Dispersal
+
+```{r, echo=FALSE, message=FALSE}
+## SIMULATION 0
+
+# at Year = 0
+A_0 = levelplot(r_years_rep18[['NInd.0']], margin=F, scales=list(draw=FALSE), at=c(0,seq(1,max(pop_df$NInd), length=100)), col.regions=c('grey',rev(inferno(200, direction = -1))), main = "Sim 0 Year 0") 
+A_0
+
+# at Year = 100
+A_100 = levelplot(r_years_rep18[['NInd.100']], margin=F, scales=list(draw=FALSE), at=c(0,seq(1,max(pop_df$NInd), length=100)), col.regions=c('grey',rev(inferno(200, direction = -1))), main = "Sim 0 Year 100")
+A_100
+
+# at Year = 200
+A_250 = levelplot(r_years_rep18[['NInd.250']], margin=F, scales=list(draw=FALSE), at=c(0,seq(1,max(pop_df$NInd), length=100)), col.regions=c('grey',rev(inferno(200, direction = -1))), main = "Sim 0 Year 250")
+A_250
+
+
+# at Year = 500
+A_500 = levelplot(r_years_rep18[['NInd.500']], margin=F, scales=list(draw=FALSE), at=c(0,seq(1,max(pop_df$NInd), length=100)), col.regions=c('grey',rev(inferno(200, direction = -1))), main = "Sim 0 Year 500")
+A_500
+
+# at Year = 100
+A_750 = levelplot(r_years_rep18[['NInd.750']], margin=F, scales=list(draw=FALSE), at=c(0,seq(1,max(pop_df$NInd), length=100)), col.regions=c('grey',rev(inferno(200, direction = -1))), main = "Sim 0 Year 750")
+A_750
+
+# at Year = 1000
+A_1000 = levelplot(r_years_rep18[['NInd.400']], margin=F, scales=list(draw=FALSE), at=c(0,seq(1,max(pop_df$NInd), length=100)), col.regions=c("white",rev(inferno(200, direction = -1))), main = "Sim 0 Year 100")
+A_1000
+
+grid.arrange(A_0, A_100, A_250, A_500, A_750, A_1000, nrow = 2)
+```
+
+
+```{r}
+pop_df2 = pop_df1 %>% filter(Year == 100)
+ggplot(data = pop_df2, aes(x, y, color = NInd, alpha = NInd)) + geom_point() 
+```
