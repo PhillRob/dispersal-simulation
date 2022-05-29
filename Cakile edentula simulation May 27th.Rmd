@@ -14,11 +14,6 @@ require(sfheaders)
 require(raster)
 require(SDMSelect)
 require(tidyverse)
-
-# create Outputs and Output_Maps directories
-
-dir.create("Outputs")
-dir.create("Output_Maps")
 ```
 
 
