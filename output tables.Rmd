@@ -31,7 +31,7 @@ df1 <- pop_df |>
   mutate(Fre.y = sum(Cum)) # cumulative number of all species
 
 df1 <- df1[order(df1$Species), ] 
-df1
+table(df1$Species) |> as.data.frame() |> rename(Species = Var1, Years = Freq)
 ```
 
 
