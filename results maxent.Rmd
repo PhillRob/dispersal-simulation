@@ -34,13 +34,13 @@ Steps taken:
 AllData <- read.csv("Inputs/Unknown.species_AllData_Full.csv")
 colnames(AllData)[1:2] = c("lon", "lat")
 coordinates(AllData) = ~ lon + lat
-proj4string(AllData)=CRS("+init=epsg:4326") # set it to lat-long
-AllData = spTransform(AllData,CRS("+init=epsg:4326"))
+proj4string(AllData)=CRS("+init=EPSG:4326") # set it to lat-long
+AllData = spTransform(AllData,CRS("+init=EPSG:4326"))
 e <- extent(110, 155, -45, -9)
 r <- raster(e, ncols = 1000, nrows = 1000)
 # you need to provide a function 'fun' for when there are multiple points per cell
 AllData_a <- rasterize(AllData, r, fun = mean)
-AllData2a = raster::resample(AllData_a[[2]], raster(ext=extent(extent(AllData_a)), resolution=1,crs=projection(AllData)))
+AllData2a = raster::resample(AllData_a[[2]], raster(ext=extent(extent(AllData_a)), resolution= 1,crs=projection(AllData)))
 raster::writeRaster(AllData2a, format="ascii", filename = "Inputs/climate_suitabilitya", NAflag = -9, overwrite = T, bylayer = T, datatype = "FLT4S")
 ```
 
@@ -55,10 +55,10 @@ coordinates(introduction) = ~ lon + lat
 proj4string(introduction)=proj4string(AllData) # set it to lat-long
 introduction = spTransform(introduction,proj4string(AllData))
 e <- extent(110, 155, -45, -9)
-r <- raster(e, ncols = 720, nrows = 360)
+r <- raster(e, ncols = 1000, nrows = 1000)
 # you need to provide a function 'fun' for when there are multiple points per cell
 introduction2 <- rasterize(introduction, r, fun = mean)
-introduction3 = raster::resample(introduction2[[2]], raster(ext=extent(extent(introduction2)), resolution=1,crs=projection(introduction)))
+introduction3 = raster::resample(introduction2[[2]], raster(ext=extent(extent(introduction2)), resolution= 1,crs=projection(introduction)))
 raster::writeRaster(introduction3, format="ascii", filename = "Inputs/news_locations.asc", NAflag = -9, overwrite = T, datatype = "INT2U")
 ```
 

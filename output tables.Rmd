@@ -20,7 +20,7 @@ pop_df <- readPop(simulate, dirpath) |> tibble()
 
 df1 <- pop_df |> 
   select(Year, Rep, NInd) |> 
-  rename(Species = Rep, Fre.x = NInd) |> # Replicates represents Species, NInd is the frequency of a species x each year
+  rename(Species = Rep, Fre.x = NInd) |> # Replicates represents Species, NInds is the frequency of a species x each year
   group_by(Year, Species, .groups = "keep") |> 
   summarise(Fre.x = sum(Fre.x)) |> # sum Fre.x across all locations
   ungroup(Year) |>
@@ -32,6 +32,7 @@ df1 <- pop_df |>
 
 df1 <- df1[order(df1$Species), ] 
 table(df1$Species) |> as.data.frame() |> rename(Species = Var1, Years = Freq)
+table(df1$Species)
 ```
 
 
