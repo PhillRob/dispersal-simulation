@@ -14,11 +14,6 @@ require(sfheaders)
 require(raster)
 require(SDMSelect)
 require(tidyverse)
-
-# create Outputs and Output_Maps directories
-
-dir.create("Outputs")
-dir.create("Output_Maps")
 ```
 
 
@@ -166,7 +161,7 @@ validateRSparams(simulate) ## check parameter validity
 9. Run simulations
 
 ```{r, echo=TRUE, message=FALSE}
-set.seed(100389)
+set.seed(13976)
 RunRS(RSparams = simulate, dirpath = paste0(getwd(), "/"))
 ```
 
