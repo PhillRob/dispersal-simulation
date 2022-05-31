@@ -34,14 +34,14 @@ Steps taken:
 AllData <- read.csv("Inputs/Unknown.species_AllData_Full.csv")
 colnames(AllData)[1:2] = c("lon", "lat")
 coordinates(AllData) = ~ lon + lat
-proj4string(AllData)=CRS("+init=epsg:4326") # set it to lat-long
-AllData = spTransform(AllData,CRS("+init=epsg:4326"))
+proj4string(AllData)=CRS("+init=EPSG:4326") # set it to lat-long
+AllData = spTransform(AllData,CRS("+init=EPSG:4326"))
 e <- extent(110, 155, -45, -9)
-r <- raster(e, ncols = 1000, nrows = 1000)
+r <- raster(e, ncols = 10000, nrows = 10000)
 # you need to provide a function 'fun' for when there are multiple points per cell
 AllData_a <- rasterize(AllData, r, fun = mean)
-AllData2a = raster::resample(AllData_a[[2]], raster(ext=extent(extent(AllData_a)), resolution=1,crs=projection(AllData)))
-raster::writeRaster(AllData2a, format="ascii", filename = "Inputs/climate_suitabilitya", NAflag = -9, overwrite = T, bylayer = T, datatype = "FLT4S")
+AllData2a = raster::resample(AllData_a[[2]], raster(ext= e, resolution = 1,crs=projection(AllData)))
+raster::writeRaster(AllData2a * 100, format="ascii", filename = "Inputs/climate_suitability", NAflag = -9, overwrite = T, bylayer = T, datatype = "INT4U")
 ```
 
 
@@ -55,18 +55,18 @@ coordinates(introduction) = ~ lon + lat
 proj4string(introduction)=proj4string(AllData) # set it to lat-long
 introduction = spTransform(introduction,proj4string(AllData))
 e <- extent(110, 155, -45, -9)
-r <- raster(e, ncols = 720, nrows = 360)
+r <- raster(e, ncols = 10000, nrows = 10000)
 # you need to provide a function 'fun' for when there are multiple points per cell
 introduction2 <- rasterize(introduction, r, fun = mean)
-introduction3 = raster::resample(introduction2[[2]], raster(ext=extent(extent(introduction2)), resolution=1,crs=projection(introduction)))
-raster::writeRaster(introduction3, format="ascii", filename = "Inputs/news_locations.asc", NAflag = -9, overwrite = T, datatype = "INT2U")
+introduction3 = raster::resample(introduction2[[2]], raster(ext= e, resolution= 1,crs=projection(introduction)))
+raster::writeRaster(introduction3, format="ascii", filename = "Inputs/news_location.asc", NAflag = -9, overwrite = T, datatype = "UTF-8")
 ```
 
 
 Visualization of the survival probabilities and the introduction points for cakile edentula.
 
 ```{r}
-lp = raster("Inputs/climate_suitabilitya.asc") |> rasterToPoints() |> as.data.frame()  |> rename(value = climate_suitabilitya) |> filter(!is.na(value))
+lp = raster("Inputs/climate_suitability.asc") |> rasterToPoints() |> as.data.frame()  |> rename(value = climate_suitability) |> filter(!is.na(value))
 ggplot( ) + 
   geom_tile(data = lp , aes(x = x, y = y, fill = value)) + 
   scale_fill_gradient("suitability", low = "white", high = "black") +
@@ -84,11 +84,11 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
       
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-landscapes = ImportedLandscape(LandscapeFile = "climate_suitabilitya.asc", 
+landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
                           Resolution = 1, 
                           HabPercent = TRUE, 
                           K_or_DensDep = 10000, 
-                          SpDistFile = "news_locations.asc", 
+                          SpDistFile = "news_location.asc", 
                           SpDistResolution = 1)
 ```
 
@@ -122,7 +122,7 @@ $$P_{100km} = P_{100km}/{(P_{20km} + P_{100Km})}=0.17$$
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 dist = matrix(c(20000, 100000, 0.83 ), ncol = 3, byrow = T)
-disps <-  Dispersal(Emigration = Emigration(EmigProb = 0.1), Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + Settlement(MaxSteps = 0, Settle = 2)
+disps <-  Dispersal(Emigration = Emigration(EmigProb = 0.0), Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + Settlement(MaxSteps = 0, Settle = 2)
 disps
 ```
 
@@ -133,7 +133,7 @@ disps
 inits <- Initialise(InitType = 1, #  initialisation from a loaded species distribution map
                    SpType = 0,# all suitable cells within all distribution presence cells
                    InitDens = 2,
-                   IndsHaCell = 100) # = at carrying capacity
+                   IndsHaCell = 1000) 
 inits
 ```
 
