@@ -14,6 +14,18 @@ require(sfheaders)
 require(raster)
 require(SDMSelect)
 require(tidyverse)
+
+# default simulation parameters
+parameters <- list(carrying_capacity = 10000, 
+                  max_offspring = 1000,
+                  competition_coefficient = 0.000001,
+                  short_range_distance = 20000,
+                  long_range_distance = 100000,
+                  short_range_probability = 0.83,
+                  emigration_probability = 0.0,
+                  no_introduced_per_cell = 500, 
+                  simulation_period = 1000,
+                  replicates = 10)
 ```
 
 
@@ -87,7 +99,7 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
 landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
                           Resolution = 1, 
                           HabPercent = TRUE, 
-                          K_or_DensDep = 10000, 
+                          K_or_DensDep = parameters$carrying_capacity, 
                           SpDistFile = "news_location.asc", 
                           SpDistResolution = 1)
 ```
@@ -102,7 +114,7 @@ landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc",
     - bc = 0.000001 : competition coefficient (under-compensatory)
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-demos <- Demography(Rmax = 1000, bc = 0.000001, ReproductionType = 0)
+demos <- Demography(Rmax = parameters$max_offspring, bc = parameters$competition_coefficient, ReproductionType = 0)
 demos
 ```
 
@@ -121,8 +133,8 @@ $$P_{100km} = P_{100km}/{(P_{20km} + P_{100Km})}=0.17$$
     - Settle = 2: if cell is not suitable, individual settles in one of the suitable cells around the cell it landed (relaxed settlement condition)
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-dist = matrix(c(20000, 100000, 0.83 ), ncol = 3, byrow = T)
-disps <-  Dispersal(Emigration = Emigration(EmigProb = 0.0), Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + Settlement(MaxSteps = 0, Settle = 2)
+dist = matrix(c(parameters$short_range_distance, parameters$long_range_distance, parameters$short_range_probability), ncol = 3, byrow = T)
+disps <-  Dispersal(Emigration = Emigration(EmigProb = parameters$emigration_probability), Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + Settlement(MaxSteps = 0, Settle = 2)
 disps
 ```
 
@@ -133,7 +145,7 @@ disps
 inits <- Initialise(InitType = 1, #  initialisation from a loaded species distribution map
                    SpType = 0,# all suitable cells within all distribution presence cells
                    InitDens = 2,
-                   IndsHaCell = 1000) 
+                   IndsHaCell = parameters$no_introduced_per_cell) 
 inits
 ```
 
@@ -143,8 +155,8 @@ We will run $1\ experiments$ with $10\ Replicates$ simulating the spread of caki
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 sims <- Simulation(Simulation = 1,
-                  Years = 1000,
-                  Replicates = 10,
+                  Years = parameters$simulation_period,
+                  Replicates = parameters$replicates,
                   OutIntRange = 1,
                   OutIntPop = 1,
                   OutIntOcc = 1)
