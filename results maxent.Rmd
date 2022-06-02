@@ -119,14 +119,14 @@ We will run $1\ experiments$ with $10\ Replicates$ simulating the spread of caki
 ```{r, default_parameters}
 parameters <- list(carrying_capacity = 10000, 
                   max_offspring = 1000,
-                  competition_coefficient = 0.000001,
+                  competition_coefficient = 0.0000005,
                   short_range_distance = 20000,
                   long_range_distance = 100000,
-                  short_range_probability = 0.83,
+                  short_range_probability = 0.7,
                   emigration_probability = 0.0,
-                  no_introduced_per_cell = 2000, 
-                  Year = 1000,
-                  Species = 1000)
+                  no_introduced_per_cell = 1000, 
+                  Year = 500,
+                  Species = 100)
 ```
 
 # Summary of the results
