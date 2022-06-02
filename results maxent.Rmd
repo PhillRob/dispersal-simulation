@@ -24,8 +24,8 @@ parameters <- list(carrying_capacity = 10000,
                   short_range_probability = 0.83,
                   emigration_probability = 0.0,
                   no_introduced_per_cell = 1000, 
-                  simulation_period = 1000,
-                  replicates = 10)
+                  Year = 1000,
+                  Species = 10)
 ```
 
 
@@ -155,8 +155,8 @@ We will run $1\ experiments$ with $10\ Replicates$ simulating the spread of caki
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 sims <- Simulation(Simulation = 1,
-                  Years = parameters$simulation_period,
-                  Replicates = parameters$replicates,
+                  Years = parameters$Year,
+                  Replicates = parameters$Species,
                   OutIntRange = 1,
                   OutIntPop = 1,
                   OutIntOcc = 1)
@@ -212,7 +212,6 @@ library(PopulationGrowthR)
 
 
 ```{r, prepdata,  echo=FALSE, message=FALSE}
-write.csv(range_df, paste0("sim-r", parameters$replicates, "y", parameters$simulation_period, ".csv"))
 range_df <- range_df[, c(1, 2, 4)]
 colnames(range_df)<-c("Species","Year","Frequency")
 freYear <-
@@ -228,7 +227,24 @@ colnames(yeardata1)<-  c("Year", "Specimens")
 
 fitall = lagfit(data = fdata1, yeardata = yeardata1)
 lagresults<-fitall[["fitdata"]]
-mean(lagresults$Laglength,na.rm=T)
-table(lagresults$Lag)
+
+`Mean Lag End` = mean(lagresults$Laglength,na.rm=T)
+lagspecies = table(lagresults$Lag) |> as.data.frame()
+lag_count = lagspecies[lagspecies$Var1 == TRUE, "Freq"]
+```
+
+output table for lag assessment
+
+```{r, lagtable,  echo=FALSE, message=FALSE}
+parameters_table = as.tibble(parameters)
+lag_table = tibble(parameters_table, LagSpecies = lag_count, `Mean Lag End` = `Mean Lag End`, `% Lag Species` = 100* lag_count/sum(lagspecies$Freq), `% Lag Length of Years Assessed` = 100 * `Mean Lag End`/Year)
+
+if(file.exists("lag_table.csv") == FALSE) {
+  write.csv(lag_table, "lag_table.csv")
+} else {
+  lag_table = rbind(read.csv("lag_table.csv", row.names = "X"), lag_table)
+  write.csv(lag_table, "lag_table.csv")
+}
+
 ```
 
