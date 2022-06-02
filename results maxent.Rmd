@@ -14,18 +14,6 @@ require(sfheaders)
 require(raster)
 require(SDMSelect)
 require(tidyverse)
-
-# default simulation parameters
-parameters <- list(carrying_capacity = 10000, 
-                  max_offspring = 1000,
-                  competition_coefficient = 0.000001,
-                  short_range_distance = 20000,
-                  long_range_distance = 100000,
-                  short_range_probability = 0.83,
-                  emigration_probability = 0.0,
-                  no_introduced_per_cell = 1000, 
-                  Year = 1000,
-                  Species = 10)
 ```
 
 
@@ -87,22 +75,11 @@ panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
   geom_point(data = a3, aes(x = lon, y = lat, color = locations))
 ```
 
-
 4. Define the *landscape parameter* in RangeshiftR for simulation with the climate map and the species distribution and the parameters:
 
       - resolution = $1km$. 
       - HabPercent = TRUE: since the data in our suitability map is a probability value between 0 and 1. 
       - K_or_DensDep = 10000: to infer that a location with a probability of 1 would have a carrying capacity of 10000. The carrying capacities for all locations are calculated based on the probability value and the 100 threshold. 
-      
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
-                          Resolution = 1, 
-                          HabPercent = TRUE, 
-                          K_or_DensDep = parameters$carrying_capacity, 
-                          SpDistFile = "news_location.asc", 
-                          SpDistResolution = 1)
-```
 
 5. We define the Species parameters which include:
 
@@ -112,11 +89,6 @@ landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc",
     - generations are non-overlapping 
     - the maximum growth rate = 1000 : mean number of offspring per female and reproductive event at very low density. (AM Payne, 1984: "Reproduction ans survivorship of cakile edentula var.lacutris along the Lake Huron shoreline" suggests that "The largest number of of upper fruit segments on a mature plant was 1723 or a potential 3446 seeds")
     - bc = 0.000001 : competition coefficient (under-compensatory)
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-demos <- Demography(Rmax = parameters$max_offspring, bc = parameters$competition_coefficient, ReproductionType = 0)
-demos
-```
 
 - *dispersal*: This contains information on *Emigration* probability, *Transport* modeled with a dispersal kernel and *Settlement* whose default options assume that an individual will die if it arrives in an unsuitable cell and settle if it’s suitable. The assumption:
 
@@ -132,119 +104,42 @@ $$P_{100km} = P_{100km}/{(P_{20km} + P_{100Km})}=0.17$$
     - MaxSteps = 10: Maximum number of steps before mortality
     - Settle = 2: if cell is not suitable, individual settles in one of the suitable cells around the cell it landed (relaxed settlement condition)
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-dist = matrix(c(parameters$short_range_distance, parameters$long_range_distance, parameters$short_range_probability), ncol = 3, byrow = T)
-disps <-  Dispersal(Emigration = Emigration(EmigProb = parameters$emigration_probability), Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + Settlement(MaxSteps = 0, Settle = 2)
-disps
-```
-
 6. Initialize the parameters for simulation
-
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-inits <- Initialise(InitType = 1, #  initialisation from a loaded species distribution map
-                   SpType = 0,# all suitable cells within all distribution presence cells
-                   InitDens = 2,
-                   IndsHaCell = parameters$no_introduced_per_cell) 
-inits
-```
 
 7. Simulation parameters
 
 We will run $1\ experiments$ with $10\ Replicates$ simulating the spread of cakile edentula over $1000\ years$ and record the *population*, *occurance* and *range* every $1\ years$
 
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-sims <- Simulation(Simulation = 1,
-                  Years = parameters$Year,
-                  Replicates = parameters$Species,
-                  OutIntRange = 1,
-                  OutIntPop = 1,
-                  OutIntOcc = 1)
-sims
-```
-
 8. Combine all the predefined parameters into a master object and run the simulation. We will run two separate simulations, one for the short range dispersal and the other for the long range dispersal.
-
-```{r, echo=TRUE, warning=FALSE, message=FALSE}
-simulate <- RSsim(seed = 13976) + landscapes + demos + disps + sims + inits
-validateRSparams(simulate) ## check parameter validity
-```
 
 9. Run simulations
 
-```{r, echo=TRUE, message=FALSE}
-set.seed(13976)
-RunRS(RSparams = simulate, dirpath = paste0(getwd(), "/"))
-```
+# default simulation parameters
 
+```{r, default_parameters}
+parameters <- list(carrying_capacity = 10000, 
+                  max_offspring = 1000,
+                  competition_coefficient = 0.000001,
+                  short_range_distance = 20000,
+                  long_range_distance = 100000,
+                  short_range_probability = 0.83,
+                  emigration_probability = 0.0,
+                  no_introduced_per_cell = 2000, 
+                  Year = 1000,
+                  Species = 1000)
+```
 
 # Summary of the results
-## Range
 
 ```{r}
-range = read.csv("Outputs/Batch1_Sim1_Land1_Range.txt", sep = "\t")
-range_1000_years = table(range$Rep) |> data.frame() |> rename(Replicate = Var1, Max_Years = Freq) |> mutate(Max_Years = Max_Years -1)
-range_1000_years2 = range_1000_years[order(range_1000_years$Max_Years, decreasing = T), ]
-range_1000_years2
-```
-
-# Sample output: Range Output File
-
-```{r, echo=FALSE, message=FALSE}
-dirpath = paste0(getwd(), "/")
-range_df <- readRange(simulate, dirpath)
-```
-
-## Abundance
-
-```{r, echo=FALSE, message=FALSE}
-# plot trajectory for mean of all the  runs:
-plotAbundance(range_df, sd = T, replicates = F, main = "Simulation")
-```
-
-## Lag detection
-
-```{r, message=FALSE}
-# load packages
-devtools::install_github("PhillRob/PopulationGrowthR", force = F)
-library(PopulationGrowthR)
+source("~/Documents/GitHub/dispersal-simulation/simulation_function.R")
+my_simulation(parameters = parameters)
 ```
 
 
-```{r, prepdata,  echo=FALSE, message=FALSE}
-range_df <- range_df[, c(1, 2, 4)]
-colnames(range_df)<-c("Species","Year","Frequency")
-freYear <-
-  aggregate(Frequency ~ Year, range_df, function(x)
-    cumsum(x))
 
-fdata1 <- cbind(range_df, as.vector(unlist(freYear[2])))
-colnames(fdata1) <- c("Species", "Year", "Frequency", "Specimens")
-yeardata1 <- aggregate(Frequency ~ Year, fdata1, function(x)
-  sum(x))
 
-colnames(yeardata1)<-  c("Year", "Specimens")
 
-fitall = lagfit(data = fdata1, yeardata = yeardata1)
-lagresults<-fitall[["fitdata"]]
 
-`Mean Lag End` = mean(lagresults$Laglength,na.rm=T)
-lagspecies = table(lagresults$Lag) |> as.data.frame()
-lag_count = lagspecies[lagspecies$Var1 == TRUE, "Freq"]
-```
 
-output table for lag assessment
-
-```{r, lagtable,  echo=FALSE, message=FALSE}
-parameters_table = as.tibble(parameters)
-lag_table = tibble(parameters_table, LagSpecies = lag_count, `Mean Lag End` = `Mean Lag End`, `% Lag Species` = 100* lag_count/sum(lagspecies$Freq), `% Lag Length of Years Assessed` = 100 * `Mean Lag End`/Year)
-
-if(file.exists("lag_table.csv") == FALSE) {
-  write.csv(lag_table, "lag_table.csv")
-} else {
-  lag_table = rbind(read.csv("lag_table.csv", row.names = "X"), lag_table)
-  write.csv(lag_table, "lag_table.csv")
-}
-
-```
 

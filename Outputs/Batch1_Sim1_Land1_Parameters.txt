@@ -2,8 +2,8 @@ RangeShifter 2.0
 ================    =====================
 
 BATCH MODE 	yes
-SEED 	2213096088
-REPLICATES 	100
+SEED 	13976
+REPLICATES 	1000
 YEARS 	1000
 REPRODUCTIVE SEASONS / YEAR	1
 CELL-BASED MODEL
@@ -14,12 +14,12 @@ TYPE: 	habitat quality
 FILE NAME: climate_suitability.asc
 No. HABITATS:	1
 RESOLUTION (m): 	1
-DIMENSIONS:  X 360  Y 150
-AVAILABLE:   min.X 0 min.Y 0  max.X 359 max.Y 149
+DIMENSIONS:  X 45  Y 36
+AVAILABLE:   min.X 0 min.Y 0  max.X 44 max.Y 35
 
 SPECIES DISTRIBUTION LOADED: 	yes
 RESOLUTION (m)	1
-FILE NAME: news_locations.asc
+FILE NAME: news_location.asc
 
 ENVIRONMENTAL GRADIENT:	 no
 ENVIRONMENTAL STOCHASTICITY:	no
@@ -29,18 +29,18 @@ SPECIES' PARAMETERS.
 REPRODUCTION:
 TYPE: Asexual / Only female model
 STAGE STRUCTURE:	no
-Rmax	6
-bc	1e-05
+Rmax	1000
+bc	1e-06
 
 CARRYING CAPACITIES:
-Habitat 0: K 1000
+Habitat 0: K 10000
 
 DISPERSAL - EMIGRATION:	density-independent
 USE FULL KERNEL TO DETERMINE EMIGRATION: no
 SEX-DEPENDENT:   no
 STAGE-DEPENDENT: no
 INDIVIDUAL VARIABILITY: no
-EMIGRATION PROB.:	0.05
+EMIGRATION PROB.:	0
 
 DISPERSAL - TRANSFER: 	dispersal kernel
 TYPE: 	double negative exponential
@@ -64,11 +64,11 @@ No. of variable traits:  0
 
 INITIALISATION CONDITIONS:
 From species distribution: 	
-some random presence cells/patches
-INITIAL NO. OF INDIVIDUALS: 	100 individuals per cell
+all presence cells/patches
+INITIAL NO. OF INDIVIDUALS: 	2000 individuals per cell
 GEOGRAPHICAL CONSTRAINTS (cell numbers): 
-min X: 0 max X: 359
-min Y: 0 max Y: 149
+min X: 0 max X: 44
+min Y: 0 max Y: 35
 
 OUTPUTS:
 Range - every 1 year
