@@ -23,7 +23,7 @@ parameters <- list(carrying_capacity = 10000,
                   long_range_distance = 100000,
                   short_range_probability = 0.83,
                   emigration_probability = 0.0,
-                  no_introduced_per_cell = 500, 
+                  no_introduced_per_cell = 1000, 
                   simulation_period = 1000,
                   replicates = 10)
 ```
@@ -201,3 +201,34 @@ range_df <- readRange(simulate, dirpath)
 # plot trajectory for mean of all the  runs:
 plotAbundance(range_df, sd = T, replicates = F, main = "Simulation")
 ```
+
+## Lag detection
+
+```{r, message=FALSE}
+# load packages
+devtools::install_github("PhillRob/PopulationGrowthR", force = F)
+library(PopulationGrowthR)
+```
+
+
+```{r, prepdata,  echo=FALSE, message=FALSE}
+write.csv(range_df, paste0("sim-r", parameters$replicates, "y", parameters$simulation_period, ".csv"))
+range_df <- range_df[, c(1, 2, 4)]
+colnames(range_df)<-c("Species","Year","Frequency")
+freYear <-
+  aggregate(Frequency ~ Year, range_df, function(x)
+    cumsum(x))
+
+fdata1 <- cbind(range_df, as.vector(unlist(freYear[2])))
+colnames(fdata1) <- c("Species", "Year", "Frequency", "Specimens")
+yeardata1 <- aggregate(Frequency ~ Year, fdata1, function(x)
+  sum(x))
+
+colnames(yeardata1)<-  c("Year", "Specimens")
+
+fitall = lagfit(data = fdata1, yeardata = yeardata1)
+lagresults<-fitall[["fitdata"]]
+mean(lagresults$Laglength,na.rm=T)
+table(lagresults$Lag)
+```
+
