@@ -90,6 +90,6 @@ my_simulation <- function(parameters) {
   write_delim(lag_table, "lag_table.csv", delim = ",")
   
   # aggregate lag by emigration probability
-  aggregate(`% Lag Species` ~ emigration_probability, lag_table, FUN = mean)
-  aggregate(`% Lag Length of Years Assessed` ~ emigration_probability, lag_table, FUN = mean)
+  list(aggregate(`% Lag Species` ~ emigration_probability, lag_table, FUN = mean),
+  aggregate(`% Lag Length of Years Assessed` ~ emigration_probability, lag_table, FUN = mean))
 }
