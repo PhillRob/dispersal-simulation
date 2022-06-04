@@ -139,7 +139,13 @@ parameters <- function () {
 
 ```{r}
 source("~/Documents/GitHub/dispersal-simulation/simulation_function.R")
-rerun(10, my_simulation(parameters = parameters()))
+rerun(2, my_simulation(parameters = parameters()))
+
+# aggregate lag by emigration probability
+lag_table = read_delim("lag_table.csv", delim = ",", show_col_types = FALSE)
+
+list(aggregate(`% Lag Species` ~ emigration_probability, lag_table, FUN = mean), 
+     aggregate(`% Lag Length of Years Assessed` ~ emigration_probability, lag_table, FUN = mean))
 ```
 
 
