@@ -116,24 +116,29 @@ We will run $1\ experiments$ with $10\ Replicates$ simulating the spread of caki
 
 # default simulation parameters
 
+
+
+
 ```{r, default_parameters}
-parameters <- list(carrying_capacity = 10000, 
-                  max_offspring = 1000,
-                  competition_coefficient = 0.0000005,
-                  short_range_distance = 20000,
-                  long_range_distance = 100000,
-                  short_range_probability = 0.7,
-                  emigration_probability = 0.0,
-                  no_introduced_per_cell = 1000, 
-                  Year = 500,
-                  Species = 100)
+parameters <- function () {
+  tibble::tibble(carrying_capacity = sample(1000:10000, 1), 
+                  max_offspring = sample(10:1000, 1),
+                  competition_coefficient = sample(0.00000005:0.00005, 1),
+                  short_range_distance = sample(5000:30000, 1),
+                  long_range_distance = sample(70000:200000, 1),
+                  short_range_probability = sample(seq(0.5,0.9, 0.01), 1),
+                  emigration_probability = sample(seq(0.0,0.5, 0.01), 1),
+                  no_introduced_per_cell = sample(10:carrying_capacity, 1), 
+                  Year = sample(100:1000, 1),
+                  Species = sample(10:1000, 1))
+}
 ```
 
 # Summary of the results
 
 ```{r}
 source("~/Documents/GitHub/dispersal-simulation/simulation_function.R")
-my_simulation(parameters = parameters)
+replicate(10, my_simulation(parameters = parameters()))
 ```
 
 
