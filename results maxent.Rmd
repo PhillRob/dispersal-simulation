@@ -116,7 +116,8 @@ We will run $1\ experiments$ with $10\ Replicates$ simulating the spread of caki
 
 # default simulation parameters
 
-
+The values for each parameter are sampled randomly from the limits: carrying_capacity (1000 - 10000), max_offspring (10 - 1000), competition_coefficient  (0.00000005 - 0.00005), short_range_distance (5000m - 30000m), long_range_distance (70000m - 200000m), short_range_probability (0.5 - 0.9), emigration_probability (0.0 - 0.5), no_introduced_per_cell (10 - carrying capacity), Year (100 years - 1000 years) and 
+Species (10 - 1000). 
 
 
 ```{r, default_parameters}
@@ -138,7 +139,7 @@ parameters <- function () {
 
 ```{r}
 source("~/Documents/GitHub/dispersal-simulation/simulation_function.R")
-replicate(10, my_simulation(parameters = parameters()))
+rerun(10, my_simulation(parameters = parameters()))
 ```
 
 
