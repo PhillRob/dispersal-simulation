@@ -116,24 +116,36 @@ We will run $1\ experiments$ with $10\ Replicates$ simulating the spread of caki
 
 # default simulation parameters
 
+The values for each parameter are sampled randomly from the limits: carrying_capacity (1000 - 10000), max_offspring (10 - 1000), competition_coefficient  (0.00000005 - 0.00005), short_range_distance (5000m - 30000m), long_range_distance (70000m - 200000m), short_range_probability (0.5 - 0.9), emigration_probability (0.0 - 0.5), no_introduced_per_cell (10 - carrying capacity), Year (100 years - 1000 years) and 
+Species (10 - 1000). 
+
+
 ```{r, default_parameters}
-parameters <- list(carrying_capacity = 10000, 
-                  max_offspring = 1000,
-                  competition_coefficient = 0.0000005,
-                  short_range_distance = 20000,
-                  long_range_distance = 100000,
-                  short_range_probability = 0.7,
-                  emigration_probability = 0.0,
-                  no_introduced_per_cell = 1000, 
-                  Year = 500,
-                  Species = 100)
+parameters <- function () {
+  tibble::tibble(carrying_capacity = sample(1000:10000, 1), 
+                  max_offspring = sample(10:1000, 1),
+                  competition_coefficient = sample(0.00000005:0.00005, 1),
+                  short_range_distance = sample(5000:30000, 1),
+                  long_range_distance = sample(70000:200000, 1),
+                  short_range_probability = sample(seq(0.5,0.9, 0.01), 1),
+                  emigration_probability = sample(seq(0.0,0.5, 0.01), 1),
+                  no_introduced_per_cell = sample(10:carrying_capacity, 1), 
+                  Year = sample(100:1000, 1),
+                  Species = sample(10:1000, 1))
+}
 ```
 
 # Summary of the results
 
 ```{r}
 source("~/Documents/GitHub/dispersal-simulation/simulation_function.R")
-my_simulation(parameters = parameters)
+rerun(2, my_simulation(parameters = parameters()))
+
+# aggregate lag by emigration probability
+lag_table = read_delim("lag_table.csv", delim = ",", show_col_types = FALSE)
+
+list(aggregate(`% Lag Species` ~ emigration_probability, lag_table, FUN = mean), 
+     aggregate(`% Lag Length of Years Assessed` ~ emigration_probability, lag_table, FUN = mean))
 ```
 
 
