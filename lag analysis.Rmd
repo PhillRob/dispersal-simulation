@@ -1,0 +1,129 @@
+
+*Summary of the parameters and lag values*
+
+```{r}
+library(tidyverse)
+library(psych)
+library(car)
+
+data = read_csv("lag_table.csv") |> mutate(short_range_distance = short_range_distance/1000, long_range_distance = long_range_distance/1000)
+
+describe(data, fast = TRUE)  |> knitr::kable()
+```
+
+
+*lag frequency*
+
+Regression coefficients
+
+```{r}
+data2 = data[, -c(12:14)]
+`fit lag` = lm(LagSpecies ~ short_range_distance + emigration_probability + no_introduced_per_cell + Species, data2)
+summary(`fit lag`)$coefficients |> knitr::kable()
+```
+
+Q-Q plot
+
+```{r}
+plot(`fit lag`, 2)
+```
+
+Added variable plot
+
+```{r}
+avPlots(`fit lag`) 
+```
+
+# % lag species
+
+Regression coefficients
+
+```{r}
+data2 = data[, -c(11:12, 14)]
+`fit % lag` = lm(`% Lag Species` ~ short_range_distance + short_range_probability + emigration_probability + no_introduced_per_cell + no_introduced_per_cell * carrying_capacity , data2)
+summary(`fit % lag`)$coefficients |> knitr::kable()
+```
+
+Q-Q plot
+
+```{r}
+plot(`fit % lag`, 2)
+```
+
+Added variable plot
+
+```{r}
+avPlots(`fit % lag`) 
+```
+
+# lag lengths
+
+Regression coefficients
+
+```{r}
+data2 = data[, -c(11, 13:14)]
+`fit year` = lm(`Mean Lag End` ~ short_range_distance + emigration_probability + Year, data2)
+summary(`fit year`)$coefficients |> knitr::kable()
+```
+
+Q-Q plot
+
+```{r}
+plot(`fit year`, 2)
+```
+
+Added variable plot
+
+```{r}
+avPlots(`fit year`) 
+```
+
+Parameters with Lag lengths similar to the observations from herbaria data
+
+```{r}
+SE = summary(`fit year`)$coefficients[1, 2]
+average = summary(`fit year`)$coefficients[1,1]
+
+confidence_interval = function(average, SE){
+  q = qnorm(0.025)
+  lower = (q * SE) + average
+  upper = (-q * SE) + average
+  list(lower, upper)
+}
+
+conf.values = confidence_interval(average = average, SE = SE)
+
+data |> dplyr::select(short_range_distance, short_range_probability, emigration_probability, no_introduced_per_cell,carrying_capacity, Year, Species, LagSpecies, `Mean Lag End`, `% Lag Species`, `% Lag Length of Years Assessed`) |> filter(`Mean Lag End` > conf.values[[1]])  |> filter (`Mean Lag End` < conf.values[[2]]) |> round(2) |> knitr::kable()
+```
+
+Summary of Parameters with Lag lengths similar to the observations from herbaria data
+
+```{r}
+data2 |> filter(`Mean Lag End` > conf.values[[1]])  |> filter (`Mean Lag End` < conf.values[[2]]) |> dplyr::select(short_range_distance, emigration_probability, Year) |> describe(fast = T) |> knitr::kable()
+```
+
+
+# % lag years
+
+Regression coefficients
+
+```{r}
+data2 = data[, -c(11:13)]
+`fit % year` = lm(`% Lag Length of Years Assessed` ~ short_range_distance + emigration_probability + no_introduced_per_cell + Year, data2)
+summary(`fit % year`)$coefficients |> knitr::kable()
+```
+
+Q-Q plot
+
+```{r}
+plot(`fit % year`, 2)
+```
+
+Added variable plot
+
+```{r}
+avPlots(`fit % year`) 
+```
+
+
+
