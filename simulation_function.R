@@ -1,10 +1,13 @@
 my_simulation <- function(parameters) {
+  parameters_table = parameters
+  news_location = paste0("intro_",parameters$intro_location,"_port.asc")
+  
   # landscape
   landscapes = ImportedLandscape(LandscapeFile = "climate_suitability.asc", 
                                  Resolution = 1, 
                                  HabPercent = TRUE, 
                                  K_or_DensDep = parameters$carrying_capacity, 
-                                 SpDistFile = "news_location.asc", 
+                                 SpDistFile = news_location, 
                                  SpDistResolution = 1)
   # Demography
   demos <- Demography(Rmax = parameters$max_offspring, 
@@ -13,7 +16,7 @@ my_simulation <- function(parameters) {
   # Dispersal
   dist = matrix(c(parameters$short_range_distance, parameters$long_range_distance, parameters$short_range_probability), ncol = 3, byrow = T)
   disps <-  Dispersal(Emigration = Emigration(EmigProb = parameters$emigration_probability),
-                      Transfer =  DispersalKernel(DoubleKernel = T, Distances = dist)) + 
+                      Transfer =  DispersalKernel(DoubleKernel = TRUE, Distances = dist)) + 
     # settlement
     Settlement(MaxSteps = 0, Settle = 2) 
   
@@ -40,18 +43,17 @@ my_simulation <- function(parameters) {
   
   # summary of results
   dirpath = paste0(getwd(), "/")
+  
+  
+  # range
   range_df = readRange(simulate, dirpath)
   
   range_1000_years = table(range_df$Rep) |> data.frame() |> rename(Replicate = Var1, Max_Years = Freq) |> mutate(Max_Years = Max_Years -1)
   range_1000_years2 = range_1000_years[order(range_1000_years$Max_Years, decreasing = T), ]
-  write_delim(range_1000_years2, paste0("SummaryResults-Y", parameters$Year, "-S", parameters$Species, ".csv"), delim = ",")
-  
+
   # lag detection
   # devtools::install_github("PhillRob/PopulationGrowthR", force = F)
   library(PopulationGrowthR)
-  jpeg(paste0("Abundance-Y", parameters$Year, "-S", parameters$Species, ".png"))
-  Abundance = plotAbundance(range_df, sd = T, replicates = F, main = "Abundance")
-  dev.off()
   
   # data prep
   range_df <- range_df[, c(1, 2, 4)]
@@ -76,17 +78,16 @@ my_simulation <- function(parameters) {
   lag_count = sum(lagspecies$Freq) - lagspecies[lagspecies$Var1 == FALSE, "Freq"]
   
   # output table for lag assessment
-  parameters_table = as.tibble(parameters)
   lag_table = mutate(parameters_table, LagSpecies = lag_count, `Mean Lag End` = `Mean Lag End`, 
                      `% Lag Species` = 100* lag_count/sum(lagspecies$Freq), 
                      `% Lag Length of Years Assessed` = 100 * `Mean Lag End`/Year)
   
-  if(file.exists("lag_table.csv") == TRUE) {
-    lag_table_0 = read_delim("lag_table.csv", delim = ",", show_col_types = FALSE)
-    lag_table = rbind(lag_table_0, lag_table)
-    write_delim(lag_table, "lag_table.csv", delim = ",")
-  } 
   
-  write_delim(lag_table, "lag_table.csv", delim = ",")
-  set.seed(NULL)
+  # save lag output data to DB
+  if(("simulated_population_lag_table_4_locations" %in% dbListTables(con)) == FALSE) {
+    dbWriteTable(con, "simulated_population_lag_table_4_locations", lag_table)
+  } else{
+    dbAppendTable(con, "simulated_population_lag_table_4_locations", lag_table)
+  }
+ set.seed(NULL)
 }

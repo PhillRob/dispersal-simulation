@@ -40,40 +40,163 @@ e <- extent(110, 155, -45, -9)
 r <- raster(e, ncols = 10000, nrows = 10000)
 # you need to provide a function 'fun' for when there are multiple points per cell
 AllData_a <- rasterize(AllData, r, fun = mean)
-AllData2a = raster::resample(AllData_a[[2]], raster(ext= e, resolution = 1,crs=projection(AllData)))
-raster::writeRaster(AllData2a * 100, format="ascii", filename = "Inputs/climate_suitability", NAflag = -9, overwrite = T, bylayer = T, datatype = "INT4U")
+AllData2a = raster::resample(AllData_a[[2]], raster(ext= e, resolution = 0.2,crs=projection(AllData)))
+raster::writeRaster(AllData2a * 100, format="ascii", filename = "Inputs/climate_suitability", NAflag = -9, overwrite=TRUE, bylayer = T, datatype = "INT4U")
 ```
 
 
 3. We simulate a species distribution map such that we have 100 individuals each in 4 locations i.e the ports of "Sydney", "Melbourne", "Brisbane" and "Perth". Save this data into a species distribution map file *news_locations.asc*
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
-introduction = read.csv("Inputs/aus_ports3.tsv", sep = "\t")[, 3:5] |> rename(lon = X, lat = Y, Individuals = NInds)
+introduction = read.csv("Inputs/aus_ports3.tsv", sep = "\t")[, 3:5] |> rename(lon = X, lat = Y, Individuals = NInds) |> distinct()
 introduction$Individuals = as.numeric(introduction$Individuals)
-a3 = introduction %>% filter(!is.na(Individuals)) %>% mutate("locations" =  rep(c("Syd", "Mel", "Bris", "Perth"), 100)) %>% na.omit()
-coordinates(introduction) = ~ lon + lat
-proj4string(introduction)=proj4string(AllData) # set it to lat-long
-introduction = spTransform(introduction,proj4string(AllData))
+a3 = introduction %>% filter(!is.na(Individuals)) %>% mutate("locations" =  c("Syd", "Mel", "Bris", "Perth")) %>% na.omit()
+```
+
+To calculate the distance between points:
+
+```{r}
+# area between coord points in square kilo metres
+distance_m = function(data, lon, lat) {
+  radius = 6371 # km (radius at equator)
+  r = 2 * pi * radius / 360 # distance that corresponds to 1 degree at Equator
+  
+  lat_change = data$lat - lat
+  lon_change = (data$lon - lon) * cos((data$lat + lat) * 0.5 * pi/180)  
+  d = r * sqrt(lat_change * lat_change + lon_change * lon_change)
+  
+  return(d)
+}
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+data <- read.csv("Inputs/Unknown.species_AllData_Full.csv")
+
+# Sydney 1
+coords = data |>dplyr::select(lon, lat)
+coords$distances = distance_m(coords, 151.1989, -33.85151)
+sydney = coords |> filter(distances == min(distances))
+
+ss = data |> filter(lon == sydney$lon & lat == sydney$lat)
+sydney_distance = sydney$distances
+sydney_distance
+
+ss1 = ss[1, ]
+sydney = data.frame(lon = ss1$lon, lat = ss1$lat, Individuals = 1, locations = "Syd")
+
+coordinates(sydney) = ~ lon + lat
+proj4string(sydney)=proj4string(AllData) # set it to lat-long
+sydney = spTransform(sydney,proj4string(AllData))
 e <- extent(110, 155, -45, -9)
 r <- raster(e, ncols = 10000, nrows = 10000)
 # you need to provide a function 'fun' for when there are multiple points per cell
-introduction2 <- rasterize(introduction, r, fun = mean)
-introduction3 = raster::resample(introduction2[[2]], raster(ext= e, resolution= 1,crs=projection(introduction)))
-raster::writeRaster(introduction3, format="ascii", filename = "Inputs/news_location.asc", NAflag = -9, overwrite = T, datatype = "UTF-8")
+sydney2 <- rasterize(sydney, r, fun = mean)
+sydney3 = raster::resample(sydney2[[2]], raster(ext= e, resolution= 1,crs=projection(sydney)))
+raster::writeRaster(sydney3, format="ascii", filename = "Inputs/intro_sydney_port.asc", NAflag = -9, overwrite = T, datatype = "UTF-8")
 ```
 
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+# Melbourne 1
+coords = data |>dplyr::select(lon, lat)
+coords$distances = distance_m(coords, 144.937, -37.83878)
+melbourne = coords |> filter(distances == min(distances))
+
+mm = data |> filter(lon == melbourne$lon & lat == melbourne$lat)
+melbourne_distance = melbourne$distances
+melbourne_distance
+
+  
+mm1 = mm[1,]
+Melbourne = data.frame(lon = mm1$lon, lat = mm1$lat, Individuals = 1, locations = "Mel")
+
+
+coordinates(Melbourne) = ~ lon + lat
+proj4string(Melbourne)=proj4string(AllData) # set it to lat-long
+Melbourne = spTransform(Melbourne,proj4string(AllData))
+e <- extent(110, 155, -45, -9)
+r <- raster(e, ncols = 10000, nrows = 10000)
+# you need to provide a function 'fun' for when there are multiple points per cell
+Melbourne2 <- rasterize(Melbourne, r, fun = mean)
+Melbourne3 = raster::resample(Melbourne2[[2]], raster(ext= e, resolution= 1,crs=projection(Melbourne)))
+raster::writeRaster(Melbourne3, format="ascii", filename = "Inputs/intro_Melbourne_port.asc", NAflag = -9, overwrite = T, datatype = "UTF-8")
+```
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+# Brisbane 1
+coords = data |>dplyr::select(lon, lat)
+coords$distances = distance_m(coords, 153.0956, -27.41807)
+brisbane = coords |> filter(distances == min(distances))
+
+bb = data |> filter(lon == brisbane$lon & lat == brisbane$lat)
+brisbane_distance = brisbane$distances
+brisbane_distance
+
+
+bb1 = bb[1, ]
+Brisbane = data.frame(lon = bb1$lon, lat = bb1$lat, Individuals = 1, locations = "Bris")
+
+coordinates(Brisbane) = ~ lon + lat
+proj4string(Brisbane)=proj4string(AllData) # set it to lat-long
+Brisbane = spTransform(Brisbane,proj4string(AllData))
+e <- extent(110, 155, -45, -9)
+r <- raster(e, ncols = 10000, nrows = 10000)
+# you need to provide a function 'fun' for when there are multiple points per cell
+Brisbane2 <- rasterize(Brisbane, r, fun = mean)
+Brisbane3 = raster::resample(Brisbane2[[2]], raster(ext= e, resolution= 1,crs=projection(Brisbane)))
+raster::writeRaster(Brisbane3, format="ascii", filename = "Inputs/intro_Brisbane_port.asc", NAflag = -9, overwrite = T, datatype = "UTF-8")
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+# Perth 1
+coords = data |>dplyr::select(lon, lat)
+coords$distances = distance_m(coords, 115.8834, -31.9518)
+perth = coords |> filter(distances == min(distances))
+
+pp = data |> filter(lon == perth$lon & lat == perth$lat)
+perth_distance = perth$distances
+perth_distance
+
+
+distances = c(brisbane_distance, perth_distance, sydney_distance, melbourne_distance) |> sort()
+distances
+
+pp1 = pp[1, ]
+Perth = data.frame(lon = pp1$lon, lat = pp1$lat, Individuals = 1, locations = "Perth")
+
+
+coordinates(Perth) = ~ lon + lat
+proj4string(Perth)=proj4string(AllData) # set it to lat-long
+Perth = spTransform(Perth,proj4string(AllData))
+e <- extent(110, 155, -45, -9)
+r <- raster(e, ncols = 10000, nrows = 10000)
+# you need to provide a function 'fun' for when there are multiple points per cell
+Perth2 <- rasterize(Perth, r, fun = mean)
+Perth3 = raster::resample(Perth2[[2]], raster(ext= e, resolution= 1,crs=projection(Perth)))
+raster::writeRaster(Perth3, format="ascii", filename = "Inputs/intro_Perth_port.asc", NAflag = -9, overwrite = T, datatype = "UTF-8")
+```
 
 Visualization of the survival probabilities and the introduction points for cakile edentula.
 
 ```{r}
-lp = raster("Inputs/climate_suitability.asc") |> rasterToPoints() |> as.data.frame()  |> rename(value = climate_suitability) |> filter(!is.na(value))
+a3 = rbind(data.frame(lon = ss$lon, lat = ss$lat, Individuals = 1, locations = rep("Syd", 1)),
+           data.frame(lon = mm$lon, lat = mm$lat, Individuals = 1, locations = rep("Mel", 1)),
+           data.frame(lon = pp$lon, lat = pp$lat, Individuals = 1, locations = rep("Perth", 1)),
+           data.frame(lon = bb$lon, lat = bb$lat, Individuals = 1, locations = rep("Bris",1)))
+
+lp = raster("Inputs/climate_suitability2.asc") |> rasterToPoints() |> as.data.frame()  |> rename(value = climate_suitability2) 
 ggplot( ) + 
   geom_tile(data = lp , aes(x = x, y = y, fill = value)) + 
   scale_fill_gradient("suitability", low = "white", high = "black") +
-  theme_grey() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+  theme_classic() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) + 
   geom_point(data = a3, aes(x = lon, y = lat, color = locations))
 ```
+
 
 4. Define the *landscape parameter* in RangeshiftR for simulation with the climate map and the species distribution and the parameters:
 
@@ -121,12 +244,14 @@ Species (10 - 1000).
 
 
 ```{r, default_parameters}
-parameters <- function () {
-  tibble::tibble(carrying_capacity = sample(1000:10000, 1), 
+parameters <- function (index) {
+  tibble::tibble(intro_location = intro_location[index],
+                 intro_suitability = intro_suitability[index],
+                 carrying_capacity = sample(1000:10000, 1), 
                   max_offspring = sample(10:1000, 1),
-                  competition_coefficient = sample(0.00000005:0.00005, 1),
-                  short_range_distance = sample(5000:30000, 1),
-                  long_range_distance = sample(70000:200000, 1),
+                  competition_coefficient = sample(seq(0,0.005, 0.00000001), 1),
+                  short_range_distance = sample(1000:30000, 1),
+                  long_range_distance = sample(30001:200000, 1),
                   short_range_probability = sample(seq(0.5,0.9, 0.01), 1),
                   emigration_probability = sample(seq(0.0,0.5, 0.01), 1),
                   no_introduced_per_cell = sample(10:carrying_capacity, 1), 
@@ -138,15 +263,35 @@ parameters <- function () {
 # Summary of the results
 
 ```{r}
-source("~/Documents/GitHub/dispersal-simulation/simulation_function.R")
-rerun(2, my_simulation(parameters = parameters()))
+# database table to store simulation output
+library(DBI)
+library(RPostgres)
 
-# aggregate lag by emigration probability
-lag_table = read_delim("lag_table.csv", delim = ",", show_col_types = FALSE)
+#provide the name of your db
+db <- "postgres" 
+host_db <- "postgres.cl0erzvvnfux.ap-northeast-1.rds.amazonaws.com"   
+db_port <- 5432  
+db_user <- "philipp"  
+db_password <- 'philipp1234'
 
-list(aggregate(`% Lag Species` ~ emigration_probability, lag_table, FUN = mean), 
-     aggregate(`% Lag Length of Years Assessed` ~ emigration_probability, lag_table, FUN = mean))
+con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password) 
+
+
+## simulation
+source("simulation_function.R")
+
+intro_location = c("Brisbane", "Melbourne", "Perth", "sydney")
+
+intro_suitability = c(bb$Unknown.species_AllData_Full.logistic.values, mm$Unknown.species_AllData_Full.logistic.values, pp$Unknown.species_AllData_Full.logistic.values, ss$Unknown.species_AllData_Full.logistic.values)
+
+n = 111
+
+for(i in sample(1:length(intro_location), n, replace = T)){
+  my_simulation(parameters = parameters(i))
+  dbGetQuery(conn = con, "SELECT COUNT(*) FROM simulated_population_lag_table_4_locations")
+}
 ```
+
 
 
 
