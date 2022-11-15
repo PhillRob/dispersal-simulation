@@ -272,7 +272,7 @@ db <- "postgres"
 host_db <- "postgres.cl0erzvvnfux.ap-northeast-1.rds.amazonaws.com"   
 db_port <- 5432  
 db_user <- "philipp"  
-db_password <- 'philipp1234'
+db_password <- '****' # enter the password here
 
 con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password) 
 
