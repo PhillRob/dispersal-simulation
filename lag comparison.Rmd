@@ -1,0 +1,206 @@
+
+Simulation data
+```{r}
+db <- "postgres" 
+host_db <- "postgres.cl0erzvvnfux.ap-northeast-1.rds.amazonaws.com"   
+db_port <- 5432  
+db_user <- "philipp"  
+db_password <- 'philipp1234'
+
+con <- dbConnect(RPostgres::Postgres(), dbname = db, host=host_db, port=db_port, user=db_user, password=db_password) 
+
+Simulation = dbReadTable(con, "simulated_population_lag_table_4_locations") |> dplyr::select(-row.names)
+```
+
+# proportion of Lag species
+
+```{r, message=FALSE}
+library(tidyverse)
+(Simulation |> select(X..Lag.Species))$X..Lag.Species |> mean(na.rm = T)
+```
+
+Australia lag data
+
+```{r}
+AUS_data = dbReadTable(conn = con, "AUS_lag_results") |>
+  mutate(lengthlag0 = as.numeric(lengthlag0), 
+         lengthlag = as.numeric(lengthlag))
+```
+
+
+# proportion of Lag species
+
+```{r}
+(sum(AUS_data$increase0 == TRUE)/nrow(AUS_data) * 100) |> round() # with the 1st set of lag data
+```
+
+
+# mean lag lengths
+
+```{r}
+(AUS_data |> filter(increase0 == TRUE))$lengthlag0 |> mean(na.rm = T) # with the 1st set of lag data
+```
+
+
+
+
+# AUS vs Simulation
+
+```{r}
+t.test((AUS_data |> filter(increase0 == TRUE))$lengthlag0, Simulation$Mean.Lag.End) # with the 1st set of lag data
+```
+
+
+NZL lag data
+
+```{r}
+NZL_data = dbReadTable(conn = con, "NZL_lag_results") 
+(sum(NZL_data$increase0 == TRUE, na.rm = T)/nrow(NZL_data) * 100) |> round() # with the 1st set of lag data
+```
+
+
+# mean lag lengths
+
+```{r}
+(NZL_data |> filter(increase0 == TRUE))$lengthlag0 |> mean() # with the 1st set of lag data
+```
+
+
+
+# NZL vs Simulation
+
+```{r}
+t.test((NZL_data|> filter(increase0 == TRUE))$lengthlag0, Simulation$Mean.Lag.End) # with the 1st set of lag data
+```
+
+
+
+lag lengths
+
+```{r}
+d1 = data.frame(lags = c(Simulation$Mean.Lag.End, AUS_data$lengthlag0, NZL_data$lengthlag0), 
+                data = c(rep("Simulated", length(Simulation$Mean.Lag.End)), 
+                         rep("Herbarium (AUS)", length(AUS_data$lengthlag0)),
+                         rep("Herbarium (NZL)", length(NZL_data$lengthlag0)))) |> 
+  na.omit()
+
+# lag lengths
+ggplot(d1, aes(x = lags, fill = data)) + 
+  geom_histogram(aes(color = data, fill = data), position = "dodge", alpha = 0, bins = 20) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  ylab("Number of Lag Species") + xlab("Lag lengths")
+
+```
+
+
+```{r}
+# AUS
+
+# lagged species
+AUS_data2 = AUS_data[AUS_data$increase0 == TRUE,]
+
+# Getting range data for AUS species with lags
+data3 = readr::read_csv("~/Desktop/Documents/GitHub/dispersal-simulation-changed-files/herbaria pop data/AUS-data-lag.csv")
+data3$Species = tolower(data3$Species)
+
+# from species identified to have lag, extract the residence time by aggregating the range data
+data4 = data3[data3$Species %in% AUS_data2$species, ] |>
+  group_by(Species) |> 
+  summarise(residence = max(Year) - min(Year))
+
+# merge the data with residence time to the lag data and compute proportion of lag length to residence time
+AUS_data2 = merge(AUS_data2, data4, by.x = "species", by.y = "Species") |>
+  mutate(`lag % of residence` = round(100 * lengthlag0/residence, 2)) 
+
+
+
+# NZL
+# lagged species
+NZL_data2 = NZL_data[NZL_data$increase0 == TRUE,]
+NZL_data2$species = tolower(NZL_data2$species)
+
+# Getting range data for NZL species with lags
+data5 = readr::read_csv("~/Desktop/Documents/GitHub/dispersal-simulation-changed-files/herbaria pop data/NZ-data-lag.csv")
+data5$Species = tolower(data5$Species)
+
+# from species identified to have lag, extract the residence time by aggregating the range data
+data6 = data5[data5$Species %in% NZL_data2$species, ] |>
+  group_by(Species) |> 
+  summarise(residence = max(Year) - min(Year))
+
+# merge the data with residence time to the lag data and compute proportion of lag length to residence time
+NZL_data2 = merge(NZL_data2, data6, by.x = "species", by.y = "Species") |>
+  mutate(`lag % of residence` = round(100 * lengthlag0/residence, 2)) 
+
+
+
+d2 = data.frame(lags = c(Simulation$X..Lag.Length.of.Years.Assessed, AUS_data2$`lag % of residence`, NZL_data2$`lag % of residence`), 
+                data = c(rep("Simulated", length(Simulation$X..Lag.Length.of.Years.Assessed)), 
+                         rep("Herbarium (AUS)", length(AUS_data2$`lag % of residence`)),
+                         rep("Herbarium (NZL)", length(NZL_data2$`lag % of residence`)))) |> 
+  na.omit()
+```
+
+
+```{r}
+# lag lengths
+ggplot(d2, aes(x = lags, fill = data)) + 
+  geom_histogram(aes(y = after_stat(c(
+      count[group == 1]/sum(count[group == 1]),
+      count[group == 2]/sum(count[group == 2]),
+      count[group == 3]/sum(count[group == 3])
+    ) * 100), color = data, color = data), 
+    position = "dodge", alpha = 0, bins = 20) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  ylab("Number of Lag Species (Percentage)") + xlab("Lag lengths vs Residence time")
+```
+
+Correlation between number of lag events and the average duration of lag
+
+```{r}
+cor.test(Simulation$LagSpecies, Simulation$Mean.Lag.End)
+```
+
+
+95% confidence interval for the mean lag lengths in viirtual species
+
+```{r}
+mean = Simulation$Mean.Lag.End |> mean()
+sd = Simulation$Mean.Lag.End |> sd()
+t = qnorm(0.025, lower.tail = F)
+
+lower_lim = mean - (t * sd) 
+upper_lim = mean + (t * sd) 
+
+# NZL neophytes within simulation confidence interval
+(NZL_data2$lengthlag0[NZL_data2$lengthlag0 < round(upper_lim)] |> length()) / (NZL_data2$lengthlag0 |> length()) * 100
+data5[data5$Species %in% NZL_data2$species, "Year"] |> min() # min year
+data5[data5$Species %in% NZL_data2$species, "Year"] |> max() # max year
+
+
+# AUS neophytes within simulation confidence interval
+(AUS_data2$lengthlag0[AUS_data2$lengthlag0 < round(upper_lim)] |> length()) / (AUS_data2$lengthlag0 |> length()) * 100
+data3[data3$Species %in% AUS_data2$species, "Year"] |> min() # min year
+data3[data3$Species %in% AUS_data2$species, "Year"] |> max() # max year
+```
+###
+_________________
+Demographic parameters: "competition coefficient: _increase lags, _increase % lags :: _reduce lag length, _reduce % lag length"
+
+
+
+Dispersal parameters: "emigration probability : _increase lags, _increase % lags :: _reduce % lag length"
+                      "short-range probability: _increase % lags :: _reduce % lag length" 
+                      "short-range dispersal: _reduce lags, _reduce % lags :: _increase lag length", _increase % lag length
+                      
+                       
+                      
+
+Landscape parameters: "carrying capacity: _reduce lags,  _reduce % lags"
+
+
+Initialization and simulation parameters:  "relative saturation at the introduction location: _reduce lags :: _increase lag length",  _increase % lag length
+                                            "residence time: _reduce lags :: _reduce % lag length"
+                                            "replicates:  _reduce lags ::  _increase % lag length"
